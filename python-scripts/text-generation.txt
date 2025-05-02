@@ -1,0 +1,13 @@
+!pip install transformers
+
+from transformers import pipeline
+
+# Load text generation pipeline
+generator = pipeline('text-generation', model='gpt2')
+
+# Generate text
+prompt = "Once upon a time  "
+results = generator(prompt, max_length=50, num_return_sequences=1)
+
+print("Generated Text:\n")
+print(results[0]['generated_text'])

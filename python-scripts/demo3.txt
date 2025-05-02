@@ -1,0 +1,20 @@
+!pip install -q transformers
+
+from transformers import pipeline
+
+# Use a conversational model like Flan-T5 for prompt-based tasks
+summarizer = pipeline("text2text-generation", model="google/flan-t5-base")
+
+# Sample Abstract
+abstract = """
+Deep learning has revolutionized natural language processing.
+This paper explores attention mechanisms and transformer architectures that form the basis of large language models like GPT.
+Applications include machine translation, summarization, and question answering.
+"""
+
+# Prompt: Summarize it
+prompt = f"Summarize this academic abstract:\n\n{abstract}"
+
+# Generate summary
+result = summarizer(prompt, max_length=80, do_sample=False)[0]['generated_text']
+print("📝 Summary:\n", result)

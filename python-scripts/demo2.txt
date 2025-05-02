@@ -1,0 +1,18 @@
+from transformers import pipeline
+
+# Load the summarization pipeline
+summarizer = pipeline("summarization")
+
+# Long text to summarize
+text = """
+The Indian Space Research Organisation (ISRO) has been working on the development of reusable launch vehicles 
+to reduce the cost of access to space. In 2023, they conducted a successful test flight of their RLV-TD (Reusable Launch Vehicle - Technology Demonstrator), 
+which demonstrated autonomous landing capability after being dropped from a helicopter. This marks a major step forward in India’s ambitions in the global space economy.
+"""
+
+# Generate summary
+summary = summarizer(text, max_length=60, min_length=25, do_sample=False)
+
+# Display result
+print("Summary:")
+print(summary[0]['summary_text'])

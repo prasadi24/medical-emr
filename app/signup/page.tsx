@@ -13,28 +13,38 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 
-export default function LoginPage() {
+export default function SignupPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
+    const [confirmPassword, setConfirmPassword] = useState("")
     const [error, setError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter()
-    const { signIn } = useAuth()
+    const { signUp } = useAuth()
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
         setError(null)
 
+        if (password !== confirmPassword) {
+            setError("Passwords do not match")
+            setIsLoading(false)
+            return
+        }
+
         try {
-            const { error } = await signIn(email, password)
+            const { error, data } = await signUp(email, password)
 
             if (error) {
                 setError(error.message)
                 return
             }
 
-            router.push("/dashboard")
+            if (data?.user) {
+                // Show success message or redirect
+                router.push("/login?registered=true")
+            }
         } catch (err) {
             setError("An unexpected error occurred")
             console.error(err)
@@ -48,7 +58,7 @@ export default function LoginPage() {
             <Card className="w-full max-w-md">
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl font-bold">MediConnect EMR</CardTitle>
-                    <CardDescription>Sign in to your account</CardDescription>
+                    <CardDescription>Create a new account</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {error && (
@@ -70,12 +80,7 @@ export default function LoginPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="password">Password</Label>
-                                <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-                                    Forgot password?
-                                </Link>
-                            </div>
+                            <Label htmlFor="password">Password</Label>
                             <Input
                                 id="password"
                                 type="password"
@@ -84,16 +89,26 @@ export default function LoginPage() {
                                 required
                             />
                         </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="confirmPassword">Confirm Password</Label>
+                            <Input
+                                id="confirmPassword"
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required
+                            />
+                        </div>
                         <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading ? "Signing in..." : "Sign in"}
+                            {isLoading ? "Creating account..." : "Sign up"}
                         </Button>
                     </form>
                 </CardContent>
                 <CardFooter className="flex justify-center">
                     <p className="text-sm text-muted-foreground">
-                        Don&apos;t have an account?{" "}
-                        <Link href="/signup" className="text-primary hover:underline">
-                            Sign up
+                        Already have an account?{" "}
+                        <Link href="/login" className="text-primary hover:underline">
+                            Sign in
                         </Link>
                     </p>
                 </CardFooter>

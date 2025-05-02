@@ -3,173 +3,142 @@
 import type React from "react"
 
 import { createContext, useContext, useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClientSupabaseClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import type { Session, User } from "@supabase/supabase-js"
 
-type UserRole = "student" | "faculty" | "admin"
+type UserRole = {
+    id: number
+    name: string
+    description: string | null
+}
 
-type UserWithRole = User & {
-    role?: UserRole
-    name?: string
+type UserWithRoles = User & {
+    roles: UserRole[]
 }
 
 type AuthContextType = {
-    user: UserWithRole | null
+    user: UserWithRoles | null
     session: Session | null
-    loading: boolean
+    isLoading: boolean
     signIn: (
         email: string,
         password: string,
     ) => Promise<{
         error: Error | null
+        data: Session | null
     }>
     signUp: (
         email: string,
         password: string,
-        role: string,
-        name: string,
     ) => Promise<{
         error: Error | null
+        data: { user: User | null; session: Session | null }
     }>
     signOut: () => Promise<void>
+    hasRole: (roleName: string) => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<UserWithRole | null>(null)
+    const [user, setUser] = useState<UserWithRoles | null>(null)
     const [session, setSession] = useState<Session | null>(null)
-    const [loading, setLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(true)
     const router = useRouter()
+    const supabase = createClientSupabaseClient()
 
     useEffect(() => {
-        const setData = async () => {
-            const {
-                data: { session },
-                error,
-            } = await supabase.auth.getSession()
+        const fetchUserRoles = async (userId: string) => {
+            const { data: userRoles } = await supabase.from("user_roles").select("role_id").eq("user_id", userId)
 
-            if (error) {
-                console.error(error)
-                setLoading(false)
-                return
+            if (userRoles) {
+                const roleIds = userRoles.map((ur) => ur.role_id)
+                const { data: roles } = await supabase.from("roles").select("*").in("id", roleIds)
+
+                return roles || []
             }
-
-            setSession(session)
-
-            if (session?.user) {
-                // Fetch user role from the users table
-                const { data, error } = await supabase.from("users").select("role, name").eq("id", session.user.id).single()
-
-                if (data) {
-                    setUser({
-                        ...session.user,
-                        role: data.role as UserRole,
-                        name: data.name,
-                    })
-                } else {
-                    setUser(session.user as UserWithRole)
-                }
-            }
-
-            setLoading(false)
+            return []
         }
 
-        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-            setSession(session)
-
+        const setupUser = async (session: Session | null) => {
             if (session?.user) {
-                // Fetch user role from the users table
-                const { data } = await supabase.from("users").select("role, name").eq("id", session.user.id).single()
-
-                if (data) {
-                    setUser({
-                        ...session.user,
-                        role: data.role as UserRole,
-                        name: data.name,
-                    })
-                } else {
-                    setUser(session.user as UserWithRole)
-                }
+                const roles = await fetchUserRoles(session.user.id)
+                setUser({
+                    ...session.user,
+                    roles,
+                })
             } else {
                 setUser(null)
             }
+            setIsLoading(false)
+        }
 
-            setLoading(false)
+        // Initial session check
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setSession(session)
+            setupUser(session)
         })
 
-        setData()
+        // Listen for auth changes
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
+            setSession(session)
+            await setupUser(session)
+            router.refresh()
+        })
 
         return () => {
-            authListener.subscription.unsubscribe()
+            subscription.unsubscribe()
         }
-    }, [router])
+    }, [router, supabase])
 
     const signIn = async (email: string, password: string) => {
-        const { error } = await supabase.auth.signInWithPassword({
+        setIsLoading(true)
+        const response = await supabase.auth.signInWithPassword({
             email,
             password,
         })
-
-        if (!error) {
-            router.refresh()
-        }
-
-        return { error }
+        setIsLoading(false)
+        return response
     }
 
-    const signUp = async (email: string, password: string, role: string, name: string) => {
-        const { error, data } = await supabase.auth.signUp({
+    const signUp = async (email: string, password: string) => {
+        setIsLoading(true)
+        const response = await supabase.auth.signUp({
             email,
             password,
         })
-
-        if (!error && data.user) {
-            // Add user to the users table with role
-            await supabase.from("users").insert({
-                id: data.user.id,
-                email,
-                role,
-                name,
-            })
-
-            // If role is student, add to students table
-            if (role === "student") {
-                await supabase.from("students").insert({
-                    user_id: data.user.id,
-                })
-            }
-
-            // If role is faculty, add to faculty table
-            if (role === "faculty") {
-                await supabase.from("faculty").insert({
-                    user_id: data.user.id,
-                })
-            }
-
-            router.refresh()
-        }
-
-        return { error }
+        setIsLoading(false)
+        return response
     }
 
     const signOut = async () => {
         await supabase.auth.signOut()
-        router.refresh()
         router.push("/login")
     }
 
-    const value = {
-        user,
-        session,
-        loading,
-        signIn,
-        signUp,
-        signOut,
+    const hasRole = (roleName: string) => {
+        if (!user || !user.roles) return false
+        return user.roles.some((role) => role.name === roleName)
     }
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+    return (
+        <AuthContext.Provider
+            value={{
+                user,
+                session,
+                isLoading,
+                signIn,
+                signUp,
+                signOut,
+                hasRole,
+            }}
+        >
+            {children}
+        </AuthContext.Provider>
+    )
 }
 
 export function useAuth() {

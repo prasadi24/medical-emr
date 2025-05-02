@@ -27,14 +27,16 @@ export default function LoginPage() {
         setError(null)
 
         try {
-            const { error } = await signIn(email, password)
+            const { error, data } = await signIn(email, password)
 
             if (error) {
                 setError(error.message)
                 return
             }
 
-            router.push("/dashboard")
+            if (data?.session) {
+                router.push("/dashboard")
+            }
         } catch (err) {
             setError("An unexpected error occurred")
             console.error(err)

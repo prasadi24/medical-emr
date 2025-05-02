@@ -26,14 +26,20 @@ type AuthContextType = {
         password: string,
     ) => Promise<{
         error: Error | null
-        data: Session | null
+        data: {
+            user: User | null
+            session: Session | null
+        } | null
     }>
     signUp: (
         email: string,
         password: string,
     ) => Promise<{
         error: Error | null
-        data: { user: User | null; session: Session | null }
+        data: {
+            user: User | null
+            session: Session | null
+        } | null
     }>
     signOut: () => Promise<void>
     hasRole: (roleName: string) => boolean
@@ -101,7 +107,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             password,
         })
         setIsLoading(false)
-        return response
+        return {
+            error: response.error,
+            data: response.error
+                ? null
+                : {
+                    user: response.data.user,
+                    session: response.data.session,
+                },
+        }
     }
 
     const signUp = async (email: string, password: string) => {
@@ -111,7 +125,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             password,
         })
         setIsLoading(false)
-        return response
+        return {
+            error: response.error,
+            data: response.error
+                ? null
+                : {
+                    user: response.data.user,
+                    session: response.data.session,
+                },
+        }
     }
 
     const signOut = async () => {

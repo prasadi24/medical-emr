@@ -106,77 +106,164 @@ export async function deleteDoctor(doctorId: string) {
     }
 }
 
-export async function getDoctors() {
+// This is the original function signature to maintain backward compatibility
+export async function getDoctors(options = { page: 1, limit: 100, search: "" }) {
     try {
         const supabase = createServerSupabaseClient()
+        const { page = 1, limit = 100, search = "" } = options
+        const offset = (page - 1) * limit
 
-        const { data, error } = await supabase
-            .from("doctors")
-            .select(`
+        let query = supabase.from("doctors").select(
+            `
         *,
-        user:user_id (email),
-        specialty:specialty_id (name),
-        employment_type:employment_type_id (name),
-        clinic:clinic_id (name)
-      `)
-            .order("created_at", { ascending: false })
+        user_profiles (
+          first_name,
+          last_name,
+          email,
+          phone
+        ),
+        specialties (
+          name
+        )
+      `,
+            { count: "exact" },
+        )
 
-        if (error) {
-            console.error("Error fetching doctors:", error)
-            return []
+        if (search) {
+            query = query.or(
+                `user_profiles.first_name.ilike.%${search}%,user_profiles.last_name.ilike.%${search}%,license_number.ilike.%${search}%`,
+            )
         }
 
-        // Get user profiles for each doctor
-        const userIds = data.map((doctor) => doctor.user_id)
-        const { data: profiles } = await supabase.from("user_profiles").select("*").in("id", userIds)
+        const { data, count, error } = await query
+            .order("created_at", { ascending: false })
+            .range(offset, offset + limit - 1)
 
-        // Combine doctor data with user profile data
-        const doctorsWithProfiles = data.map((doctor) => {
-            const profile = profiles?.find((p) => p.id === doctor.user_id) || {}
-            return {
-                ...doctor,
-                profile,
-            }
-        })
+        if (error) {
+            throw error
+        }
 
-        return doctorsWithProfiles
+        // For backward compatibility, return the array directly
+        return data || []
     } catch (error) {
         console.error("Error fetching doctors:", error)
         return []
     }
 }
 
-export async function getDoctorById(doctorId: string) {
+export async function getDoctorsWithPagination(options = { page: 1, limit: 10, search: "" }) {
+    try {
+        const supabase = createServerSupabaseClient()
+        const { page = 1, limit = 10, search = "" } = options
+        const offset = (page - 1) * limit
+
+        let query = supabase.from("doctors").select(
+            `
+        *,
+        user_profiles (
+          first_name,
+          last_name,
+          email,
+          phone
+        ),
+        specialties (
+          name
+        )
+      `,
+            { count: "exact" },
+        )
+
+        if (search) {
+            query = query.or(
+                `user_profiles.first_name.ilike.%${search}%,user_profiles.last_name.ilike.%${search}%,license_number.ilike.%${search}%`,
+            )
+        }
+
+        const { data, count, error } = await query
+            .order("created_at", { ascending: false })
+            .range(offset, offset + limit - 1)
+
+        if (error) {
+            throw error
+        }
+
+        return {
+            doctors: data || [],
+            totalCount: count || 0,
+            page,
+            limit,
+        }
+    } catch (error) {
+        console.error("Error fetching doctors:", error)
+        throw error
+    }
+}
+
+export async function getDoctorById(id: string) {
     try {
         const supabase = createServerSupabaseClient()
 
         const { data, error } = await supabase
             .from("doctors")
-            .select(`
+            .select(
+                `
         *,
-        user:user_id (email),
-        specialty:specialty_id (name),
-        employment_type:employment_type_id (name),
-        clinic:clinic_id (name)
-      `)
-            .eq("id", doctorId)
+        user_profiles (
+          first_name,
+          last_name,
+          email,
+          phone
+        ),
+        specialties (
+          name
+        )
+      `,
+            )
+            .eq("id", id)
             .single()
 
         if (error) {
-            console.error("Error fetching doctor:", error)
-            return null
+            throw error
         }
 
-        // Get user profile
-        const { data: profile } = await supabase.from("user_profiles").select("*").eq("id", data.user_id).single()
-
-        return {
-            ...data,
-            profile,
-        }
+        return data
     } catch (error) {
         console.error("Error fetching doctor:", error)
-        return null
+        throw error
+    }
+}
+
+export async function getDoctorByUserId(userId: string) {
+    try {
+        const supabase = createServerSupabaseClient()
+
+        const { data, error } = await supabase
+            .from("doctors")
+            .select(
+                `
+        *,
+        user_profiles (
+          first_name,
+          last_name,
+          email,
+          phone
+        ),
+        specialties (
+          name
+        )
+      `,
+            )
+            .eq("user_id", userId)
+            .single()
+
+        if (error) {
+            throw error
+        }
+
+        return data
+    } catch (error) {
+        console.error("Error fetching doctor by user ID:", error)
+        throw error
     }
 }
 

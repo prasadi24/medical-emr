@@ -6,16 +6,21 @@ import { redirect } from "next/navigation"
 import { v4 as uuidv4 } from "uuid"
 import { auditLogger } from "@/lib/audit-logger"
 
-export async function getDocuments(params: {
+// Define proper types for our parameters
+interface DocumentQueryParams {
     patientId?: string
     medicalRecordId?: string
     documentTypeId?: number
     search?: string
     limit?: number
     offset?: number
-}) {
-    const { patientId, medicalRecordId, documentTypeId, search, limit = 10, offset = 0 } = params
+    page?: number
+}
+
+export async function getDocuments(params: DocumentQueryParams = {}) {
+    const { patientId, medicalRecordId, documentTypeId, search, limit = 10, offset = 0, page = 1 } = params
     const supabase = createServerSupabaseClient()
+    const calculatedOffset = offset || (page - 1) * limit
 
     let query = supabase
         .from("documents")
@@ -26,7 +31,7 @@ export async function getDocuments(params: {
         name,
         description
       ),
-      uploaded_by_user:auth.users!uploaded_by (
+      uploaded_by_user:uploaded_by (
         email,
         user_profiles (
           first_name,
@@ -37,7 +42,7 @@ export async function getDocuments(params: {
             { count: "exact" },
         )
         .order("created_at", { ascending: false })
-        .range(offset, offset + limit - 1)
+        .range(calculatedOffset, calculatedOffset + limit - 1)
 
     if (patientId) {
         query = query.eq("patient_id", patientId)
@@ -64,7 +69,7 @@ export async function getDocuments(params: {
 
     await auditLogger.view("documents", undefined, { patientId, medicalRecordId, documentTypeId, search })
 
-    return { documents, count }
+    return { documents: documents || [], totalCount: count || 0, page, limit }
 }
 
 export async function getDocumentById(id: string) {
@@ -78,14 +83,14 @@ export async function getDocumentById(id: string) {
         name,
         description
       ),
-      uploaded_by_user:auth.users!uploaded_by (
+      uploaded_by_user:uploaded_by (
         email,
         user_profiles (
           first_name,
           last_name
         )
       ),
-      signed_by_user:auth.users!signed_by (
+      signed_by_user:signed_by (
         email,
         user_profiles (
           first_name,
@@ -261,14 +266,18 @@ export async function getDocumentTypes() {
     return documentTypes
 }
 
-export async function getDocumentTemplates(params: {
+interface DocumentTemplateQueryParams {
     documentTypeId?: number
     search?: string
     limit?: number
     offset?: number
-}) {
-    const { documentTypeId, search, limit = 10, offset = 0 } = params
+    page?: number
+}
+
+export async function getDocumentTemplates(params: DocumentTemplateQueryParams = {}) {
+    const { documentTypeId, search, limit = 10, offset = 0, page = 1 } = params
     const supabase = createServerSupabaseClient()
+    const calculatedOffset = offset || (page - 1) * limit
 
     let query = supabase
         .from("document_templates")
@@ -279,7 +288,7 @@ export async function getDocumentTemplates(params: {
         name,
         description
       ),
-      created_by_user:auth.users!created_by (
+      created_by_user:created_by (
         email,
         user_profiles (
           first_name,
@@ -290,7 +299,7 @@ export async function getDocumentTemplates(params: {
             { count: "exact" },
         )
         .order("name")
-        .range(offset, offset + limit - 1)
+        .range(calculatedOffset, calculatedOffset + limit - 1)
 
     if (documentTypeId) {
         query = query.eq("document_type_id", documentTypeId)
@@ -307,7 +316,7 @@ export async function getDocumentTemplates(params: {
         throw new Error(`Failed to fetch document templates: ${error.message}`)
     }
 
-    return { templates, count }
+    return { templates: templates || [], totalCount: count || 0, page, limit }
 }
 
 export async function createDocumentFromTemplate(formData: FormData) {

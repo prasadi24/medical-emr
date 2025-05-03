@@ -54,7 +54,7 @@ export function ClinicForm({ initialData }: ClinicFormProps) {
 
     const handleOpeningHoursChange = (day: string, type: "open" | "close", value: string) => {
         setFormData((prev) => {
-            const openingHours = { ...prev.openingHours } || {}
+            const openingHours = { ...(prev.openingHours || {}) }
             if (!openingHours[day]) {
                 openingHours[day] = { open: "09:00", close: "17:00" }
             }
@@ -64,8 +64,9 @@ export function ClinicForm({ initialData }: ClinicFormProps) {
     }
 
     const addFacility = () => {
-        if (newFacility.trim()) {
-            const updatedFacilities = [...facilities, newFacility.trim()]
+        const trimmedFacility = newFacility.trim()
+        if (trimmedFacility.length > 0) {
+            const updatedFacilities = [...facilities, trimmedFacility]
             setFacilities(updatedFacilities)
             setFormData((prev) => ({ ...prev, facilities: updatedFacilities }))
             setNewFacility("")

@@ -90,7 +90,7 @@ export default async function ClinicDetailsPage({ params }: { params: { id: stri
                         <CardContent>
                             {clinic.facilities && clinic.facilities.length > 0 ? (
                                 <div className="flex flex-wrap gap-2">
-                                    {clinic.facilities.map((facility, index) => (
+                                    {clinic.facilities.map((facility: string, index: number) => (
                                         <span
                                             key={index}
                                             className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800 dark:bg-gray-800 dark:text-gray-200"

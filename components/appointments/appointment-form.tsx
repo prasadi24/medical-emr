@@ -233,7 +233,7 @@ export function AppointmentForm({ patients, doctors, clinics, initialData, defau
                         <div className="space-y-2">
                             <Label htmlFor="duration">Duration</Label>
                             <Select
-                                value={formData.duration.toString()}
+                                value={(formData.duration || 30).toString()}
                                 onValueChange={(value) => handleChange("duration", Number.parseInt(value, 10))}
                             >
                                 <SelectTrigger>

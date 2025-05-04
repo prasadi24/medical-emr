@@ -101,14 +101,21 @@ export async function deleteAppointment(appointmentId: string, patientId: string
     }
 }
 
-export async function getAppointments(filters?: {
+export async function getAppointments({
+    patientId,
+    doctorId,
+    clinicId,
+    startDate,
+    endDate,
+    status,
+}: {
     patientId?: string
     doctorId?: string
     clinicId?: string
     startDate?: string
     endDate?: string
     status?: string
-}) {
+} = {}) {
     try {
         const supabase = createServerSupabaseClient()
 
@@ -127,35 +134,35 @@ export async function getAppointments(filters?: {
       `)
             .order("appointment_date", { ascending: true })
 
-        if (filters?.patientId) {
-            query = query.eq("patient_id", filters.patientId)
+        if (patientId) {
+            query = query.eq("patient_id", patientId)
         }
 
-        if (filters?.doctorId) {
-            query = query.eq("doctor_id", filters.doctorId)
+        if (doctorId) {
+            query = query.eq("doctor_id", doctorId)
         }
 
-        if (filters?.clinicId) {
-            query = query.eq("clinic_id", filters.clinicId)
+        if (clinicId) {
+            query = query.eq("clinic_id", clinicId)
         }
 
-        if (filters?.status) {
-            query = query.eq("status", filters.status)
+        if (status) {
+            query = query.eq("status", status)
         }
 
-        if (filters?.startDate) {
-            query = query.gte("appointment_date", filters.startDate)
+        if (startDate) {
+            query = query.gte("appointment_date", startDate)
         }
 
-        if (filters?.endDate) {
-            query = query.lte("appointment_date", filters.endDate)
+        if (endDate) {
+            query = query.lte("appointment_date", endDate)
         }
 
         const { data, error } = await query
 
         if (error) {
             console.error("Error fetching appointments:", error)
-            return []
+            return { appointments: [] }
         }
 
         // Get user profiles for each doctor to get their names
@@ -164,22 +171,24 @@ export async function getAppointments(filters?: {
             const { data: profiles } = await supabase.from("user_profiles").select("*").in("id", userIds)
 
             // Combine appointment data with user profile data
-            return data.map((appointment) => {
-                const profile = profiles?.find((p) => p.id === appointment.doctor?.user_id) || {}
-                return {
-                    ...appointment,
-                    doctor: {
-                        ...appointment.doctor,
-                        profile,
-                    },
-                }
-            })
+            return {
+                appointments: data.map((appointment) => {
+                    const profile = profiles?.find((p) => p.id === appointment.doctor?.user_id) || {}
+                    return {
+                        ...appointment,
+                        doctor: {
+                            ...appointment.doctor,
+                            profile,
+                        },
+                    }
+                }),
+            }
         }
 
-        return data
+        return { appointments: data }
     } catch (error) {
         console.error("Error fetching appointments:", error)
-        return []
+        return { appointments: [] }
     }
 }
 

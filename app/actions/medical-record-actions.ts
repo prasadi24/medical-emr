@@ -96,7 +96,7 @@ export async function deleteMedicalRecord(recordId: string, patientId: string) {
     }
 }
 
-export async function getMedicalRecords(patientId?: string) {
+export async function getMedicalRecords(params: { patientId: string }) {
     try {
         const supabase = createServerSupabaseClient()
 
@@ -109,8 +109,8 @@ export async function getMedicalRecords(patientId?: string) {
       `)
             .order("visit_date", { ascending: false })
 
-        if (patientId) {
-            query = query.eq("patient_id", patientId)
+        if (params.patientId) {
+            query = query.eq("patient_id", params.patientId)
         }
 
         const { data, error } = await query

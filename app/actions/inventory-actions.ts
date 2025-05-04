@@ -976,23 +976,21 @@ export async function getInventoryDashboardStats() {
     }
 
     // Format transactions for display
-    const formattedTransactions =
-        recentTransactions?.map((transaction) => ({
+    const formattedTransactions = []
+    for (const transaction of recentTransactions || []) {
+        formattedTransactions.push({
             id: transaction.id,
             transaction_type: transaction.transaction_type,
             quantity: transaction.quantity,
             transaction_date: transaction.transaction_date,
             item_name: transaction.item?.name || "Unknown Item",
-        })) || []
+        })
+    }
 
-    // Get top categories
-    const { data: categoriesData, error: categoriesError } = await supabase
+    // Get categories with item counts
+    const { data: categories, error: categoriesError } = await supabase
         .from("inventory_categories")
-        .select(`
-      id,
-      name,
-      items:inventory_items(id)
-    `)
+        .select("id, name")
         .order("name")
 
     if (categoriesError) {
@@ -1000,12 +998,24 @@ export async function getInventoryDashboardStats() {
         throw new Error(`Failed to fetch categories for dashboard: ${categoriesError.message}`)
     }
 
-    // Count items per category and create an array of objects
-    const topCategoriesArray =
-        categoriesData?.map((category) => ({
+    // For each category, count items separately
+    const topCategoriesArray = []
+    for (const category of categories || []) {
+        const { count, error: countError } = await supabase
+            .from("inventory_items")
+            .select("id", { count: "exact" })
+            .eq("category_id", category.id)
+
+        if (countError) {
+            console.error(`Error counting items for category ${category.id}:`, countError)
+            continue
+        }
+
+        topCategoriesArray.push({
             name: category.name,
-            count: category.items?.length || 0,
-        })) || []
+            count: count || 0,
+        })
+    }
 
     // Sort by count and take top 5
     const sortedTopCategories = [...topCategoriesArray].sort((a, b) => b.count - a.count).slice(0, 5)

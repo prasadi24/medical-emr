@@ -1,15 +1,53 @@
-import { createAuditLog, type AuditLogData } from "@/app/actions/audit-log-actions"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { headers } from "next/headers"
 
-export async function logActivity(data: AuditLogData) {
+export type AuditLogData = {
+    action: string
+    resourceType: string
+    resourceId?: string
+    details?: any
+}
+
+async function createAuditLog(data: AuditLogData) {
     try {
-        await createAuditLog(data)
+        const supabase = createServerSupabaseClient()
+        const headersList = headers()
+
+        // Get user info
+        const { data: userData, error: userError } = await supabase.auth.getUser()
+        if (userError) {
+            console.error("Error getting user for audit log:", userError)
+            return { success: false, error: userError }
+        }
+
+        // Get IP address and user agent
+        const ipAddress = headersList.get("x-forwarded-for") || headersList.get("x-real-ip") || "unknown"
+        const userAgent = headersList.get("user-agent") || "unknown"
+
+        const { error } = await supabase.from("audit_logs").insert({
+            user_id: userData.user?.id || null,
+            action: data.action,
+            resource_type: data.resourceType,
+            resource_id: data.resourceId || null,
+            details: data.details || null,
+            ip_address: ipAddress,
+            user_agent: userAgent,
+        })
+
+        if (error) {
+            console.error("Error creating audit log:", error)
+            return { success: false, error }
+        }
+
+        return { success: true }
     } catch (error) {
-        console.error("Failed to log activity:", error)
+        console.error("Error creating audit log:", error)
+        return { success: false, error }
     }
 }
 
 // Helper function to create a before/after comparison for updates
-export function createChangeLog(before: any, after: any) {
+function createChangeLog(before: any, after: any) {
     const changes: Record<string, { before: any; after: any }> = {}
 
     // Find all keys in either object
@@ -37,7 +75,7 @@ export function createChangeLog(before: any, after: any) {
 // Helper functions for common operations
 export const auditLogger = {
     create: async (resourceType: string, resourceId: string, details?: any) => {
-        await logActivity({
+        await createAuditLog({
             action: "create",
             resourceType,
             resourceId,
@@ -46,7 +84,7 @@ export const auditLogger = {
     },
 
     update: async (resourceType: string, resourceId: string, details?: any) => {
-        await logActivity({
+        await createAuditLog({
             action: "update",
             resourceType,
             resourceId,
@@ -55,7 +93,7 @@ export const auditLogger = {
     },
 
     delete: async (resourceType: string, resourceId: string, details?: any) => {
-        await logActivity({
+        await createAuditLog({
             action: "delete",
             resourceType,
             resourceId,
@@ -64,7 +102,7 @@ export const auditLogger = {
     },
 
     view: async (resourceType: string, resourceId?: string, details?: any) => {
-        await logActivity({
+        await createAuditLog({
             action: "view",
             resourceType,
             resourceId,
@@ -73,7 +111,7 @@ export const auditLogger = {
     },
 
     login: async (details?: any) => {
-        await logActivity({
+        await createAuditLog({
             action: "login",
             resourceType: "auth",
             details,
@@ -81,7 +119,7 @@ export const auditLogger = {
     },
 
     logout: async (details?: any) => {
-        await logActivity({
+        await createAuditLog({
             action: "logout",
             resourceType: "auth",
             details,
@@ -89,7 +127,7 @@ export const auditLogger = {
     },
 
     custom: async (action: string, resourceType: string, resourceId?: string, details?: any) => {
-        await logActivity({
+        await createAuditLog({
             action,
             resourceType,
             resourceId,

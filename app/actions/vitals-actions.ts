@@ -107,3 +107,26 @@ export async function getVitalsByMedicalRecordId(medicalRecordId: string) {
         return []
     }
 }
+
+export async function getVitals(params: { medicalRecordId: string }) {
+    try {
+        const supabase = createServerSupabaseClient()
+        const { medicalRecordId } = params
+
+        const { data, error } = await supabase
+            .from("vitals")
+            .select("*, recorder:recorded_by (email)")
+            .eq("medical_record_id", medicalRecordId)
+            .order("recorded_at", { ascending: false })
+
+        if (error) {
+            console.error("Error fetching vitals:", error)
+            return { vitals: [] }
+        }
+
+        return { vitals: data }
+    } catch (error) {
+        console.error("Error fetching vitals:", error)
+        return { vitals: [] }
+    }
+}

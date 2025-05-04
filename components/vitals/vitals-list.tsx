@@ -22,11 +22,14 @@ type Vitals = {
     }
 }
 
-type VitalsListProps = {
-    vitals: Vitals[]
+// Add the medicalRecordId prop to the interface
+interface VitalsListProps {
+    vitals: any[]
+    medicalRecordId?: string
 }
 
-export function VitalsList({ vitals }: VitalsListProps) {
+// Update the function signature to include the new prop
+export function VitalsList({ vitals, medicalRecordId }: VitalsListProps) {
     const formatDate = (dateString: string) => {
         const date = new Date(dateString)
         return date.toLocaleString()

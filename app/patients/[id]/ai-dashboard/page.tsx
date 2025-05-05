@@ -13,6 +13,14 @@ type Props = {
     }
 }
 
+interface MedicalRecord {
+    id: string
+    visit_date: string
+    diagnosis: string
+    treatment_plan: string
+    created_at: string
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const supabase = createServerSupabaseClient()
 
@@ -55,7 +63,7 @@ export default async function PatientAIDashboardPage({ params }: Props) {
 
     // Get the most recent medical record
     const sortedRecords = patient.medical_records.sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        (a: MedicalRecord, b: MedicalRecord) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     )
 
     const latestRecord = sortedRecords[0] || null

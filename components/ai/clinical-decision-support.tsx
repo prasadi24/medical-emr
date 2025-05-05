@@ -120,29 +120,33 @@ export default function ClinicalDecisionSupport({
                     studies: [
                         {
                             title: "PARADIGM-HF Trial (2014)",
-                            findings: "Sacubitril/valsartan reduced cardiovascular mortality by 20% compared to enalapril in patients with heart failure", \
-                            participants: 8, 442,
+                            findings:
+                                "Sacubitril/valsartan reduced cardiovascular mortality by 20% compared to enalapril in patients with heart failure",
+                            participants: 8442,
                             url: "#",
                         },
                         {
                             title: "DAPA-HF Trial (2019)",
-                            findings: "Dapagliflozin reduced risk of worsening heart failure and cardiovascular death by 26% compared to placebo",
-                            participants: 4, 744,
+                            findings:
+                                "Dapagliflozin reduced risk of worsening heart failure and cardiovascular death by 26% compared to placebo",
+                            participants: 4744,
                             url: "#",
                         },
                         {
                             title: "EMPEROR-Reduced Trial (2020)",
-                            findings: "Empagliflozin reduced the combined risk of cardiovascular death or hospitalization for heart failure by 25%",
-                            participants: 3, 730,
+                            findings:
+                                "Empagliflozin reduced the combined risk of cardiovascular death or hospitalization for heart failure by 25%",
+                            participants: 3730,
                             url: "#",
                         },
                     ],
                     metaAnalyses: [
                         {
                             title: "Beta-blockers for Heart Failure (2019)",
-                            findings: "Meta-analysis of 11 trials showed 34% reduction in all-cause mortality with beta-blocker therapy",
+                            findings:
+                                "Meta-analysis of 11 trials showed 34% reduction in all-cause mortality with beta-blocker therapy",
                             studies: 11,
-                            participants: 14_638,
+                            participants: 14638,
                             url: "#",
                         },
                     ],

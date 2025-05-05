@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -51,7 +51,14 @@ Provide:
 3. Non-pharmacological interventions
 4. Follow-up recommendations
 5. Patient education points`,
-            variables: ["diagnosis", "patient_age", "patient_gender", "patient_allergies", "patient_conditions", "patient_medications"],
+            variables: [
+                "diagnosis",
+                "patient_age",
+                "patient_gender",
+                "patient_allergies",
+                "patient_conditions",
+                "patient_medications",
+            ],
             usageCount: 876,
         },
         {
@@ -79,7 +86,8 @@ Include:
             id: "system-1",
             name: "Clinical Decision Support",
             description: "System prompt for clinical decision support features",
-            prompt: "You are a clinical decision support system. Analyze the clinical data and provide evidence-based medical insights. Focus on accuracy and relevance. Avoid making definitive diagnoses, but suggest possibilities based on the information provided. Always recommend consulting with a healthcare professional for final decisions.",
+            prompt:
+                "You are a clinical decision support system. Analyze the clinical data and provide evidence-based medical insights. Focus on accuracy and relevance. Avoid making definitive diagnoses, but suggest possibilities based on the information provided. Always recommend consulting with a healthcare professional for final decisions.",
             models: ["GPT-4o", "MedLLaMA"],
             features: ["clinical_insights", "diagnosis_suggestions"],
         },
@@ -87,7 +95,8 @@ Include:
             id: "system-2",
             name: "Medical Documentation",
             description: "System prompt for documentation generation",
-            prompt: "You are a medical documentation assistant. Generate professional, accurate clinical documentation following standard formats. Use appropriate medical terminology. Be concise but comprehensive. Include all relevant information from the provided context. Format the output in a structured, readable manner suitable for medical records.",
+            prompt:
+                "You are a medical documentation assistant. Generate professional, accurate clinical documentation following standard formats. Use appropriate medical terminology. Be concise but comprehensive. Include all relevant information from the provided context. Format the output in a structured, readable manner suitable for medical records.",
             models: ["GPT-4o"],
             features: ["progress_notes", "discharge_summaries", "consultation_reports"],
         },
@@ -95,7 +104,8 @@ Include:
             id: "system-3",
             name: "Patient Communication",
             description: "System prompt for patient-facing features",
-            prompt: "You are a patient-facing medical assistant. Provide clear, accurate health information in simple, non-technical language. Avoid medical jargon when possible. Be empathetic and supportive. Do not provide specific medical advice or diagnoses. For serious concerns, always recommend consulting with a healthcare professional. For medication questions, remind that a doctor should be consulted.",
+            prompt:
+                "You are a patient-facing medical assistant. Provide clear, accurate health information in simple, non-technical language. Avoid medical jargon when possible. Be empathetic and supportive. Do not provide specific medical advice or diagnoses. For serious concerns, always recommend consulting with a healthcare professional. For medication questions, remind that a doctor should be consulted.",
             models: ["GPT-4o", "Claude 3 Opus"],
             features: ["patient_chat", "education_materials"],
         },
@@ -106,9 +116,7 @@ Include:
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">AI Prompts</h1>
-                    <p className="text-muted-foreground mt-1">
-                        Manage AI prompt templates and system prompts
-                    </p>
+                    <p className="text-muted-foreground mt-1">Manage AI prompt templates and system prompts</p>
                 </div>
                 <Button className="gap-1">
                     <Plus className="h-4 w-4" />
@@ -149,8 +157,12 @@ Include:
                                 <CardContent>
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between">
-                                            <div className="text-sm text-muted-foreground">Category: <span className="font-medium">{template.category}</span></div>
-                                            <div className="text-sm text-muted-foreground">Usage: <span className="font-medium">{template.usageCount.toLocaleString()}</span></div>
+                                            <div className="text-sm text-muted-foreground">
+                                                Category: <span className="font-medium">{template.category}</span>
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">
+                                                Usage: <span className="font-medium">{template.usageCount.toLocaleString()}</span>
+                                            </div>
                                         </div>
 
                                         <div className="space-y-2">
@@ -273,9 +285,9 @@ Include:
                                         rows={10}
                                         className="font-mono text-sm"
                                     />
-                                    <p className="text-xs text-muted-foreground">\
-                                        Use double curly braces for variables, e.g., {{ '{{\'}}patient_name{{\'}}\'}}
-                  </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Use double curly braces for variables, e.g., {"{{"} patient_name {"}}"}
+                                    </p>
                                 </div>
 
                                 <div className="space-y-2">
@@ -288,19 +300,27 @@ Include:
                                     <div className="grid grid-cols-2 gap-2">
                                         <div className="flex items-center space-x-2">
                                             <input type="checkbox" id="feature-1" className="rounded border-gray-300" />
-                                            <label htmlFor="feature-1" className="text-sm">Clinical Insights</label>
+                                            <label htmlFor="feature-1" className="text-sm">
+                                                Clinical Insights
+                                            </label>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <input type="checkbox" id="feature-2" className="rounded border-gray-300" />
-                                            <label htmlFor="feature-2" className="text-sm">Treatment Suggestions</label>
+                                            <label htmlFor="feature-2" className="text-sm">
+                                                Treatment Suggestions
+                                            </label>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <input type="checkbox" id="feature-3" className="rounded border-gray-300" />
-                                            <label htmlFor="feature-3" className="text-sm">Documentation</label>
+                                            <label htmlFor="feature-3" className="text-sm">
+                                                Documentation
+                                            </label>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <input type="checkbox" id="feature-4" className="rounded border-gray-300" />
-                                            <label htmlFor="feature-4" className="text-sm">Patient Chat</label>
+                                            <label htmlFor="feature-4" className="text-sm">
+                                                Patient Chat
+                                            </label>
                                         </div>
                                     </div>
                                 </div>

@@ -6,6 +6,19 @@ import { AIService } from "@/lib/ai/ai-service"
 import { auditLogger } from "@/lib/audit-logger"
 import { v4 as uuidv4 } from "uuid"
 
+// Define types for the doctor data structure
+type DoctorData = {
+    id: string;
+    user_id: string;
+    user_profiles: {
+        first_name: string;
+        last_name: string;
+    };
+    specialties: {
+        name: string;
+    };
+}
+
 export async function generateAIInsightsForMedicalRecord(recordId: string) {
     try {
         const supabase = createServerSupabaseClient()
@@ -144,17 +157,25 @@ export async function generateAIDocumentation(
             return { success: false, message: "Failed to fetch medical record", error: recordError }
         }
 
-        // Get doctor information
-        const { data: doctorData } = await supabase
+        // Get doctor information - using a different approach with explicit type casting
+        const { data: doctorDataRaw, error: doctorError } = await supabase
             .from("doctors")
             .select(`
         id,
         user_id,
-        user_profiles!inner (first_name, last_name),
-        specialties!inner (name)
+        user_profiles:user_profiles(first_name, last_name),
+        specialties:specialties(name)
       `)
             .eq("user_id", record.doctor_id)
             .single()
+
+        // Cast the raw data to our defined type
+        const doctorData = doctorDataRaw as unknown as DoctorData | null
+
+        if (doctorError) {
+            console.error("Error fetching doctor information:", doctorError)
+            // Continue without doctor info
+        }
 
         // Prepare comprehensive context for document generation
         const patientInfo = `
@@ -180,13 +201,19 @@ export async function generateAIDocumentation(
             }
     `
 
-        // Fix: Access user_profiles and specialties correctly
-        // The query is set up to return objects, not arrays
-        const doctorName = doctorData?.user_profiles
-            ? `Dr. ${doctorData.user_profiles.first_name || ""} ${doctorData.user_profiles.last_name || ""}`
-            : "Unknown Doctor"
+        // Access user_profiles and specialties with safe navigation and type assertion
+        let doctorName = "Unknown Doctor"
+        let specialty = "Unknown Specialty"
 
-        const specialty = doctorData?.specialties ? doctorData.specialties.name || "Unknown Specialty" : "Unknown Specialty"
+        if (doctorData?.user_profiles) {
+            const firstName = doctorData.user_profiles.first_name || ""
+            const lastName = doctorData.user_profiles.last_name || ""
+            doctorName = `Dr. ${firstName} ${lastName}`
+        }
+
+        if (doctorData?.specialties) {
+            specialty = doctorData.specialties.name || "Unknown Specialty"
+        }
 
         const doctorInfo = doctorData
             ? `Provider: ${doctorName}

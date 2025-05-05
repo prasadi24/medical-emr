@@ -34,13 +34,20 @@ export default function AIFeedback({ logId, userId, feature }: AIFeedbackProps) 
 
         setSubmitting(true)
         try {
-            const result = await aiLogger.logFeedback({
+            // Since logFeedback doesn't exist, we'll use logUsage instead with appropriate parameters
+            const result = await aiLogger.logUsage({
                 userId,
-                logId,
-                rating: rating || (isHelpful ? 4 : 2),
-                feedback,
-                isHelpful: isHelpful,
-                isAccurate: isAccurate === null ? isHelpful : isAccurate,
+                aiFeature: feature,
+                entityType: "ai_feedback",
+                entityId: logId,
+                requestData: {
+                    isHelpful,
+                    isAccurate: isAccurate === null ? isHelpful : isAccurate,
+                    rating: rating || (isHelpful ? 4 : 2),
+                },
+                responseSummary: feedback || (isHelpful ? "Positive feedback" : "Negative feedback"),
+                tokensUsed: 0, // No tokens used for feedback
+                processingTime: 0, // No processing time for feedback
             })
 
             if (result.success) {

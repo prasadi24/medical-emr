@@ -5,36 +5,74 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { BrainCircuit, FileText, Plus, Copy, Pencil } from "lucide-react"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 export const metadata: Metadata = {
     title: "AI Prompts | Medical EMR",
     description: "Manage AI prompt templates and system prompts",
 }
 
-export default function AIPromptsPage() {
-    // Mock data for prompt templates
-    const promptTemplates = [
-        {
-            id: "prompt-1",
-            name: "Clinical Insights",
-            description: "Generate insights from clinical notes",
-            category: "medical_records",
-            prompt: `Analyze the following clinical notes and provide:
+export default async function AIPromptsPage() {
+    const supabase = createServerSupabaseClient()
+
+    // Get AI prompts
+    const { data: aiPrompts } = await supabase.from("ai_prompts").select("*").order("created_at", { ascending: false })
+
+    // Get AI system prompts
+    const { data: systemPrompts } = await supabase
+        .from("ai_system_prompts")
+        .select("*")
+        .order("created_at", { ascending: false })
+
+    // Process prompts data
+    const processedPrompts =
+        aiPrompts?.map((prompt) => ({
+            id: prompt.id,
+            name: prompt.name,
+            description: prompt.description,
+            category: prompt.category,
+            prompt: prompt.prompt_text,
+            variables: prompt.variables ? Object.keys(prompt.variables) : [],
+            usageCount: prompt.usage_count || 0,
+        })) || []
+
+    // Process system prompts data
+    const processedSystemPrompts =
+        systemPrompts?.map((prompt) => ({
+            id: prompt.id,
+            name: prompt.name,
+            description: prompt.description,
+            prompt: prompt.prompt_text,
+            models: prompt.models || [],
+            features: prompt.features || [],
+        })) || []
+
+    // If no data, use mock data
+    const promptTemplates =
+        processedPrompts.length > 0
+            ? processedPrompts
+            : [
+                {
+                    id: "prompt-1",
+                    name: "Clinical Insights",
+                    description: "Generate insights from clinical notes",
+                    category: "medical_records",
+                    prompt: `Analyze the following clinical notes and provide:
 1. Key findings summary
 2. Potential diagnoses to consider
 3. Suggested follow-up actions
 
 Clinical Notes:
 {{clinical_notes}}`,
-            variables: ["clinical_notes"],
-            usageCount: 1245,
-        },
-        {
-            id: "prompt-2",
-            name: "Treatment Plan",
-            description: "Generate treatment plan suggestions",
-            category: "treatment",
-            prompt: `Generate evidence-based treatment suggestions for the following:
+                    variables: ["clinical_notes"],
+                    usageCount: 1245,
+                },
+                {
+                    id: "prompt-2",
+                    name: "Treatment Plan",
+                    description: "Generate treatment plan suggestions",
+                    category: "treatment",
+                    prompt: `Generate evidence-based treatment suggestions for the following:
 
 Diagnosis: {{diagnosis}}
 
@@ -51,22 +89,22 @@ Provide:
 3. Non-pharmacological interventions
 4. Follow-up recommendations
 5. Patient education points`,
-            variables: [
-                "diagnosis",
-                "patient_age",
-                "patient_gender",
-                "patient_allergies",
-                "patient_conditions",
-                "patient_medications",
-            ],
-            usageCount: 876,
-        },
-        {
-            id: "prompt-3",
-            name: "Progress Note",
-            description: "Generate a progress note from clinical information",
-            category: "documentation",
-            prompt: `Generate a comprehensive progress note from the following clinical information:
+                    variables: [
+                        "diagnosis",
+                        "patient_age",
+                        "patient_gender",
+                        "patient_allergies",
+                        "patient_conditions",
+                        "patient_medications",
+                    ],
+                    usageCount: 876,
+                },
+                {
+                    id: "prompt-3",
+                    name: "Progress Note",
+                    description: "Generate a progress note from clinical information",
+                    category: "documentation",
+                    prompt: `Generate a comprehensive progress note from the following clinical information:
 
 {{clinical_information}}
 
@@ -75,41 +113,43 @@ Include:
 - Objective (physical examination findings, vital signs, test results)
 - Assessment (diagnosis, clinical impression)
 - Plan (treatment plan, medications, follow-up)`,
-            variables: ["clinical_information"],
-            usageCount: 2134,
-        },
-    ]
+                    variables: ["clinical_information"],
+                    usageCount: 2134,
+                },
+            ]
 
-    // Mock data for system prompts
-    const systemPrompts = [
-        {
-            id: "system-1",
-            name: "Clinical Decision Support",
-            description: "System prompt for clinical decision support features",
-            prompt:
-                "You are a clinical decision support system. Analyze the clinical data and provide evidence-based medical insights. Focus on accuracy and relevance. Avoid making definitive diagnoses, but suggest possibilities based on the information provided. Always recommend consulting with a healthcare professional for final decisions.",
-            models: ["GPT-4o", "MedLLaMA"],
-            features: ["clinical_insights", "diagnosis_suggestions"],
-        },
-        {
-            id: "system-2",
-            name: "Medical Documentation",
-            description: "System prompt for documentation generation",
-            prompt:
-                "You are a medical documentation assistant. Generate professional, accurate clinical documentation following standard formats. Use appropriate medical terminology. Be concise but comprehensive. Include all relevant information from the provided context. Format the output in a structured, readable manner suitable for medical records.",
-            models: ["GPT-4o"],
-            features: ["progress_notes", "discharge_summaries", "consultation_reports"],
-        },
-        {
-            id: "system-3",
-            name: "Patient Communication",
-            description: "System prompt for patient-facing features",
-            prompt:
-                "You are a patient-facing medical assistant. Provide clear, accurate health information in simple, non-technical language. Avoid medical jargon when possible. Be empathetic and supportive. Do not provide specific medical advice or diagnoses. For serious concerns, always recommend consulting with a healthcare professional. For medication questions, remind that a doctor should be consulted.",
-            models: ["GPT-4o", "Claude 3 Opus"],
-            features: ["patient_chat", "education_materials"],
-        },
-    ]
+    const systemPromptsData =
+        processedSystemPrompts.length > 0
+            ? processedSystemPrompts
+            : [
+                {
+                    id: "system-1",
+                    name: "Clinical Decision Support",
+                    description: "System prompt for clinical decision support features",
+                    prompt:
+                        "You are a clinical decision support system. Analyze the clinical data and provide evidence-based medical insights. Focus on accuracy and relevance. Avoid making definitive diagnoses, but suggest possibilities based on the information provided. Always recommend consulting with a healthcare professional for final decisions.",
+                    models: ["GPT-4o", "MedLLaMA"],
+                    features: ["clinical_insights", "diagnosis_suggestions"],
+                },
+                {
+                    id: "system-2",
+                    name: "Medical Documentation",
+                    description: "System prompt for documentation generation",
+                    prompt:
+                        "You are a medical documentation assistant. Generate professional, accurate clinical documentation following standard formats. Use appropriate medical terminology. Be concise but comprehensive. Include all relevant information from the provided context. Format the output in a structured, readable manner suitable for medical records.",
+                    models: ["GPT-4o"],
+                    features: ["progress_notes", "discharge_summaries", "consultation_reports"],
+                },
+                {
+                    id: "system-3",
+                    name: "Patient Communication",
+                    description: "System prompt for patient-facing features",
+                    prompt:
+                        "You are a patient-facing medical assistant. Provide clear, accurate health information in simple, non-technical language. Avoid medical jargon when possible. Be empathetic and supportive. Do not provide specific medical advice or diagnoses. For serious concerns, always recommend consulting with a healthcare professional. For medication questions, remind that a doctor should be consulted.",
+                    models: ["GPT-4o", "Claude 3 Opus"],
+                    features: ["patient_chat", "education_materials"],
+                },
+            ]
 
     return (
         <div className="container py-10">
@@ -191,7 +231,7 @@ Include:
 
                 <TabsContent value="system" className="space-y-6">
                     <div className="grid grid-cols-1 gap-6">
-                        {systemPrompts.map((prompt) => (
+                        {systemPromptsData.map((prompt) => (
                             <Card key={prompt.id}>
                                 <CardHeader>
                                     <div className="flex justify-between items-start">
@@ -222,7 +262,7 @@ Include:
                                             <div className="space-y-2">
                                                 <p className="text-sm font-medium">Assigned Models</p>
                                                 <div className="flex flex-wrap gap-1">
-                                                    {prompt.models.map((model) => (
+                                                    {prompt.models.map((model: string) => (
                                                         <span key={model} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
                                                             {model}
                                                         </span>
@@ -233,7 +273,7 @@ Include:
                                             <div className="space-y-2">
                                                 <p className="text-sm font-medium">Used in Features</p>
                                                 <div className="flex flex-wrap gap-1">
-                                                    {prompt.features.map((feature) => (
+                                                    {prompt.features.map((feature: string) => (
                                                         <span key={feature} className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
                                                             {feature}
                                                         </span>

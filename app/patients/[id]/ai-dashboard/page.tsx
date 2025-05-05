@@ -1,27 +1,15 @@
-import type { Metadata } from "next"
+import { Suspense } from "react"
+import Link from "next/link"
 import { notFound } from "next/navigation"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import PatientAIChat from "@/components/ai/patient-ai-chat"
+import { Skeleton } from "@/components/ui/skeleton"
+import { BrainCircuit, AlertCircle, Activity, ChevronLeft, Stethoscope, LineChart } from "lucide-react"
 import PatientRiskAssessment from "@/components/ai/patient-risk-assessment"
-import { BrainCircuit, Stethoscope, AlertCircle, Activity } from "lucide-react"
+import PatientAIChat from "@/components/ai/patient-ai-chat"
 
-type Props = {
-    params: {
-        id: string
-    }
-}
-
-interface MedicalRecord {
-    id: string
-    visit_date: string
-    diagnosis: string
-    treatment_plan: string
-    created_at: string
-}
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: { id: string } }) {
     const supabase = createServerSupabaseClient()
 
     const { data: patient } = await supabase.from("patients").select("first_name, last_name").eq("id", params.id).single()
@@ -33,15 +21,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
 
     return {
-        title: `AI Dashboard - ${patient.first_name} ${patient.last_name}`,
+        title: `AI Dashboard - ${patient.first_name} ${patient.last_name} | Medical EMR`,
         description: "AI-powered insights and tools for patient care",
     }
 }
 
-export default async function PatientAIDashboardPage({ params }: Props) {
+async function PatientAIDashboardContent({ patientId }: { patientId: string }) {
     const supabase = createServerSupabaseClient()
 
-    // Get patient data
     const { data: patient, error } = await supabase
         .from("patients")
         .select(`
@@ -51,39 +38,49 @@ export default async function PatientAIDashboardPage({ params }: Props) {
         visit_date,
         diagnosis,
         treatment_plan,
+        ai_insights,
+        ai_treatment_suggestions,
         created_at
       )
     `)
-        .eq("id", params.id)
+        .eq("id", patientId)
         .single()
 
     if (error || !patient) {
+        console.error("Error fetching patient:", error)
         notFound()
     }
 
     // Get the most recent medical record
-    const sortedRecords = patient.medical_records.sort(
-        (a: MedicalRecord, b: MedicalRecord) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    )
+    const sortedRecords = patient.medical_records
+        ? [...patient.medical_records].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        : []
 
-    const latestRecord = sortedRecords[0] || null
+    const latestRecord = sortedRecords.length > 0 ? sortedRecords[0] : null
 
     return (
-        <div className="container py-10">
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">AI Dashboard</h1>
-                    <p className="text-muted-foreground mt-1">
-                        AI-powered insights and tools for {patient.first_name} {patient.last_name}
-                    </p>
-                </div>
+        <div className="space-y-8">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">AI Dashboard</h1>
+                <p className="text-muted-foreground mt-1">
+                    AI-powered insights and tools for {patient.first_name} {patient.last_name}
+                </p>
             </div>
 
-            <Tabs defaultValue="insights" className="space-y-8">
+            <Tabs defaultValue="insights" className="space-y-6">
                 <TabsList>
-                    <TabsTrigger value="insights">Clinical Insights</TabsTrigger>
-                    <TabsTrigger value="risk">Risk Assessment</TabsTrigger>
-                    <TabsTrigger value="chat">Patient Chat</TabsTrigger>
+                    <TabsTrigger value="insights" className="gap-1">
+                        <BrainCircuit className="h-4 w-4" />
+                        Clinical Insights
+                    </TabsTrigger>
+                    <TabsTrigger value="risk" className="gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        Risk Assessment
+                    </TabsTrigger>
+                    <TabsTrigger value="chat" className="gap-1">
+                        <Activity className="h-4 w-4" />
+                        Patient Chat
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="insights" className="space-y-6">
@@ -133,7 +130,7 @@ export default async function PatientAIDashboardPage({ params }: Props) {
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <Activity className="h-5 w-5" />
+                                    <LineChart className="h-5 w-5" />
                                     <span>Health Trends</span>
                                 </CardTitle>
                                 <CardDescription>AI-analyzed health trends and patterns</CardDescription>
@@ -141,7 +138,7 @@ export default async function PatientAIDashboardPage({ params }: Props) {
                             <CardContent>
                                 <div className="h-[300px] flex items-center justify-center">
                                     <div className="text-center text-muted-foreground">
-                                        <Activity className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                                        <LineChart className="h-12 w-12 mx-auto mb-2 opacity-20" />
                                         <p>Health trend visualization would appear here</p>
                                         <p className="text-xs mt-1">Based on vitals, lab results, and visit history</p>
                                     </div>
@@ -191,13 +188,33 @@ export default async function PatientAIDashboardPage({ params }: Props) {
                 </TabsContent>
 
                 <TabsContent value="risk" className="space-y-6">
-                    <PatientRiskAssessment patientId={params.id} patientData={patient} />
+                    <PatientRiskAssessment patientId={patientId} patientData={patient} />
                 </TabsContent>
 
                 <TabsContent value="chat" className="space-y-6">
-                    <PatientAIChat patientId={params.id} patientName={`${patient.first_name} ${patient.last_name}`} />
+                    <PatientAIChat patientId={patientId} patientName={`${patient.first_name} ${patient.last_name}`} />
                 </TabsContent>
             </Tabs>
+        </div>
+    )
+}
+
+export default function PatientAIDashboardPage({ params }: { params: { id: string } }) {
+    return (
+        <div className="container py-10">
+            <div className="mb-6">
+                <Link
+                    href={`/patients/${params.id}`}
+                    className="flex items-center text-sm text-muted-foreground hover:text-foreground"
+                >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    <span>Back to Patient</span>
+                </Link>
+            </div>
+
+            <Suspense fallback={<Skeleton className="h-[600px] w-full" />}>
+                <PatientAIDashboardContent patientId={params.id} />
+            </Suspense>
         </div>
     )
 }

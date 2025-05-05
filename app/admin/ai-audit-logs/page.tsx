@@ -41,7 +41,7 @@ export default async function AIAuditLogsPage() {
           last_name
         )
       ),
-      ai_usage_logs!inner (
+      ai_usage_logs (
         ai_feature
       )
     `)

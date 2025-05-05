@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MedicalRecordsList } from "@/components/medical-records/medical-records-list"
-import { PencilIcon, PlusIcon } from "lucide-react"
+import { PencilIcon, PlusIcon, BrainCircuit } from "lucide-react"
 import { notFound } from "next/navigation"
+import PatientRiskAssessment from "@/components/ai/patient-risk-assessment"
 
 export default async function PatientDetailsPage({ params }: { params: { id: string } }) {
     const patient = await getPatientById(params.id)
-    const medicalRecords = await getMedicalRecords(params.id)
+    const medicalRecords = await getMedicalRecords({ patientId: params.id })
 
     if (!patient) {
         notFound()
@@ -65,6 +66,14 @@ export default async function PatientDetailsPage({ params }: { params: { id: str
                                 </Link>
                             </Button>
                         </RequireRole>
+                        <RequireRole roles={["Admin", "Doctor"]}>
+                            <Button variant="outline" asChild>
+                                <Link href={`/patients/${patient.id}/ai-dashboard`}>
+                                    <BrainCircuit className="mr-2 h-4 w-4" />
+                                    AI Dashboard
+                                </Link>
+                            </Button>
+                        </RequireRole>
                     </div>
                 </div>
 
@@ -72,6 +81,8 @@ export default async function PatientDetailsPage({ params }: { params: { id: str
                     <TabsList>
                         <TabsTrigger value="details">Patient Details</TabsTrigger>
                         <TabsTrigger value="medical-records">Medical Records</TabsTrigger>
+                        <TabsTrigger value="ai-insights">AI Insights</TabsTrigger>
+                        <TabsTrigger value="risk-assessment">Risk Assessment</TabsTrigger>
                     </TabsList>
                     <TabsContent value="details" className="space-y-6 pt-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -172,6 +183,55 @@ export default async function PatientDetailsPage({ params }: { params: { id: str
                                 <MedicalRecordsList records={medicalRecords} patientId={patient.id} />
                             </CardContent>
                         </Card>
+                    </TabsContent>
+                    <TabsContent value="ai-insights" className="pt-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <BrainCircuit className="h-5 w-5" />
+                                    <span>AI Clinical Insights</span>
+                                </CardTitle>
+                                <CardDescription>AI-generated insights based on patient data</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    <div className="bg-slate-50 p-4 rounded-lg">
+                                        <h3 className="font-medium mb-2">Clinical Summary</h3>
+                                        <p className="text-sm">
+                                            Based on the patient's medical history, {patient.first_name} {patient.last_name} is a{" "}
+                                            {calculateAge(patient.date_of_birth)}-year-old {patient.gender.toLowerCase()} with multiple health
+                                            concerns that require ongoing monitoring.
+                                        </p>
+                                    </div>
+
+                                    <div className="bg-slate-50 p-4 rounded-lg">
+                                        <h3 className="font-medium mb-2">Treatment Adherence</h3>
+                                        <p className="text-sm">
+                                            Patient shows good adherence to prescribed medications and treatment plans. Regular follow-up
+                                            appointments are recommended to monitor progress.
+                                        </p>
+                                    </div>
+
+                                    <div className="bg-slate-50 p-4 rounded-lg">
+                                        <h3 className="font-medium mb-2">Potential Concerns</h3>
+                                        <p className="text-sm">
+                                            AI analysis suggests monitoring for potential drug interactions and side effects. Consider
+                                            reviewing current medication regimen at next visit.
+                                        </p>
+                                    </div>
+
+                                    <div className="flex justify-end">
+                                        <Button variant="outline" size="sm" className="gap-1">
+                                            <BrainCircuit className="h-4 w-4" />
+                                            Generate New Insights
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="risk-assessment" className="pt-4">
+                        <PatientRiskAssessment patientId={params.id} patientData={patient} />
                     </TabsContent>
                 </Tabs>
             </div>

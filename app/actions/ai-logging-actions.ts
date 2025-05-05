@@ -197,4 +197,92 @@ export const aiLogger = {
             return []
         }
     },
+
+    /**
+     * Get AI usage statistics
+     */
+    async getAIUsageStatistics() {
+        try {
+            const supabase = createServerSupabaseClient()
+
+            // Get total requests
+            const { count: totalRequests, error: countError } = await supabase
+                .from("ai_usage_logs")
+                .select("*", { count: "exact", head: true })
+
+            if (countError) {
+                console.error("Error getting total requests:", countError)
+                return { success: false, message: "Failed to get total requests", error: countError }
+            }
+
+            // Get total tokens
+            const { data: tokenData, error: tokenError } = await supabase
+                .from("ai_usage_logs")
+                .select("tokens_used")
+                .limit(1000) // Limit to prevent loading too much data
+
+            if (tokenError) {
+                console.error("Error getting token data:", tokenError)
+                return { success: false, message: "Failed to get token data", error: tokenError }
+            }
+
+            const totalTokens = tokenData?.reduce((sum, log) => sum + (log.tokens_used || 0), 0) || 0
+
+            // Get average response time
+            const { data: timeData, error: timeError } = await supabase
+                .from("ai_usage_logs")
+                .select("processing_time")
+                .limit(1000) // Limit to prevent loading too much data
+
+            if (timeError) {
+                console.error("Error getting response time data:", timeError)
+                return { success: false, message: "Failed to get response time data", error: timeError }
+            }
+
+            const totalTime = timeData?.reduce((sum, log) => sum + (log.processing_time || 0), 0) || 0
+            const averageResponseTime = timeData && timeData.length > 0 ? totalTime / timeData.length : 0
+
+            // Get feature breakdown
+            const { data: featureData, error: featureError } = await supabase
+                .from("ai_usage_logs")
+                .select("ai_feature")
+                .limit(1000) // Limit to prevent loading too much data
+
+            if (featureError) {
+                console.error("Error getting feature data:", featureError)
+                return { success: false, message: "Failed to get feature data", error: featureError }
+            }
+
+            const featureBreakdown: Record<string, number> = {}
+            featureData?.forEach((log) => {
+                const feature = log.ai_feature || "unknown"
+                featureBreakdown[feature] = (featureBreakdown[feature] || 0) + 1
+            })
+
+            // Calculate quality score based on feedback (mocked for now)
+            const qualityScore = 92.5
+
+            // Calculate cost estimate (mocked for now)
+            const costEstimate = totalTokens ? totalTokens * 0.000002 : 0
+
+            return {
+                success: true,
+                data: {
+                    totalRequests: totalRequests || 0,
+                    totalTokens,
+                    averageResponseTime,
+                    featureBreakdown,
+                    qualityScore,
+                    costEstimate,
+                },
+            }
+        } catch (error) {
+            console.error("Error getting AI usage statistics:", error)
+            return { success: false, message: "An unexpected error occurred", error }
+        }
+    },
+}
+
+export async function getAIUsageStatistics() {
+    return aiLogger.getAIUsageStatistics()
 }

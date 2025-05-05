@@ -4,15 +4,15 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, BrainCircuit, Stethoscope, ClipboardList } from "lucide-react"
+import { Loader2, BrainCircuit, Stethoscope, ClipboardList } from 'lucide-react'
 import { generateAIInsightsForMedicalRecord, generateAIDocumentation } from "@/app/actions/ai-medical-record-actions"
 import { useToast } from "@/hooks/use-toast"
 
 type MedicalRecordInsightsProps = {
     recordId: string
     patientId: string
-    existingInsights?: string
-    existingTreatmentSuggestions?: string
+    existingInsights?: string | null
+    existingTreatmentSuggestions?: string | null
 }
 
 export default function MedicalRecordInsights({

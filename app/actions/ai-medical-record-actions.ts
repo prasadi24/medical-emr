@@ -150,8 +150,8 @@ export async function generateAIDocumentation(
             .select(`
         id,
         user_id,
-        user_profiles (first_name, last_name),
-        specialties (name)
+        user_profiles!inner (first_name, last_name),
+        specialties!inner (name)
       `)
             .eq("user_id", record.doctor_id)
             .single()
@@ -180,9 +180,17 @@ export async function generateAIDocumentation(
             }
     `
 
+        // Fix: Access user_profiles and specialties correctly
+        // The query is set up to return objects, not arrays
+        const doctorName = doctorData?.user_profiles
+            ? `Dr. ${doctorData.user_profiles.first_name || ""} ${doctorData.user_profiles.last_name || ""}`
+            : "Unknown Doctor"
+
+        const specialty = doctorData?.specialties ? doctorData.specialties.name || "Unknown Specialty" : "Unknown Specialty"
+
         const doctorInfo = doctorData
-            ? `Provider: Dr. ${doctorData.user_profiles?.first_name || ""} ${doctorData.user_profiles?.last_name || ""}
-      Specialty: ${doctorData.specialties?.name || "N/A"}`
+            ? `Provider: ${doctorName}
+      Specialty: ${specialty}`
             : "Provider information not available"
 
         // Combine all information
@@ -261,6 +269,67 @@ export async function generateAIDocumentation(
         }
     } catch (error) {
         console.error("Error generating AI documentation:", error)
+        return { success: false, message: "An unexpected error occurred", error }
+    }
+}
+
+export async function searchMedicalRecordsWithAI(query: string) {
+    try {
+        const supabase = createServerSupabaseClient()
+
+        // First, get all medical records (in a real app, you'd want to paginate this)
+        const { data: medicalRecords, error: recordsError } = await supabase
+            .from("medical_records")
+            .select(`
+        *,
+        patients!inner (
+          first_name,
+          last_name,
+          date_of_birth,
+          gender
+        )
+      `)
+            .order("created_at", { ascending: false })
+            .limit(100) // Limit to prevent processing too many records
+
+        if (recordsError) {
+            console.error("Error fetching medical records:", recordsError)
+            return { success: false, message: "Failed to fetch medical records", error: recordsError }
+        }
+
+        // This would use AI in a real implementation
+        // For now, just do a simple search
+        const results =
+            medicalRecords
+                ?.filter((record) => {
+                    const searchTerms = query.toLowerCase().split(" ")
+
+                    // Check if any search term is present in the record
+                    return searchTerms.some(
+                        (term) =>
+                            (record.chief_complaint && record.chief_complaint.toLowerCase().includes(term)) ||
+                            (record.diagnosis && record.diagnosis.toLowerCase().includes(term)) ||
+                            (record.treatment_plan && record.treatment_plan.toLowerCase().includes(term)) ||
+                            (record.notes && record.notes.toLowerCase().includes(term)) ||
+                            (record.patients.first_name && record.patients.first_name.toLowerCase().includes(term)) ||
+                            (record.patients.last_name && record.patients.last_name.toLowerCase().includes(term)),
+                    )
+                })
+                .map((record) => ({
+                    id: record.id,
+                    patientName: `${record.patients.first_name} ${record.patients.last_name}`,
+                    visitDate: record.visit_date,
+                    diagnosis: record.diagnosis || "No diagnosis",
+                    relevanceScore: 0.8, // Mock score
+                    matchedFields: ["diagnosis", "notes"], // Mock matched fields
+                })) || []
+
+        // Sort by mock relevance
+        results.sort((a, b) => b.relevanceScore - a.relevanceScore)
+
+        return { success: true, results }
+    } catch (error) {
+        console.error("Error searching medical records with AI:", error)
         return { success: false, message: "An unexpected error occurred", error }
     }
 }

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { BrainCircuit, BarChart, LineChart, PieChart } from "lucide-react"
+import { BrainCircuit, BarChart, LineChart, PieChart } from 'lucide-react'
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { aiLogger } from "@/app/actions/ai-logging-actions"
 
@@ -226,11 +226,11 @@ export default async function AIAnalyticsPage() {
                                     <PieChart className="h-12 w-12 mx-auto mb-2 opacity-20" />
                                     <p>AI recommendation acceptance metrics would appear here</p>
                                 </div>
+                            </div>
                         </CardContent>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-        </Tabs>
-    </div >
-  )
+                    </Card>
+                </TabsContent>
+            </Tabs>
+        </div>
+    )
 }

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Sparkles, AlertCircle } from "lucide-react"
+import { Loader2, Sparkles, AlertCircle } from 'lucide-react'
 import { AIService } from "@/lib/ai/ai-service"
 import { useToast } from "@/hooks/use-toast"
 
@@ -69,19 +69,27 @@ export default function AIEnhancedForm({ onAIGenerated, patientData }: AIEnhance
                     break
             }
 
-            const { text } = await AIService.generateText({
+            const result = await AIService.generateText({
                 prompt: userPrompt,
                 system: systemPrompt,
                 temperature: 0.4,
             })
 
-            // Pass the generated content to the parent component
-            onAIGenerated(field, text || "")
+            if (result.text) {
+                // Pass the generated content to the parent component
+                onAIGenerated(field, result.text)
 
-            toast({
-                title: "Content Generated",
-                description: `AI-generated content for ${field.replace("_", " ")} has been added.`,
-            })
+                toast({
+                    title: "Content Generated",
+                    description: `AI-generated content for ${field.replace("_", " ")} has been added.`,
+                })
+            } else {
+                toast({
+                    title: "Error",
+                    description: "Failed to generate content. Please try again.",
+                    variant: "destructive",
+                })
+            }
         } catch (error) {
             console.error("Error generating content:", error)
             toast({

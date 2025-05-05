@@ -5,6 +5,109 @@ import { revalidatePath } from "next/cache"
 import { v4 as uuidv4 } from "uuid"
 import { auditLogger } from "@/lib/audit-logger"
 
+// Type definitions
+interface Patient {
+    id: string;
+    first_name: string;
+    last_name: string;
+    date_of_birth: string;
+    gender: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    postal_code?: string;
+    created_at: string;
+}
+
+interface Appointment {
+    id: string;
+    appointment_date: string;
+    status: string;
+    doctor: { id: string; first_name: string; last_name: string } | null;
+    patient: { id: string; first_name: string; last_name: string } | null;
+    clinic: { id: string; name: string } | null;
+    appointment_type: string;
+    created_at: string;
+}
+
+interface Invoice {
+    id: string;
+    invoice_number: string;
+    patient_id: string;
+    total_amount: number;
+    paid_amount: number;
+    status: string;
+    due_date: string;
+    created_at: string;
+    items?: InvoiceItem[];
+}
+
+interface InvoiceItem {
+    id: string;
+    description: string;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+}
+
+interface InventoryItem {
+    id: string;
+    name: string;
+    current_stock: number;
+    reorder_level: number;
+    category?: { id: string; name: string };
+    is_medication: boolean;
+    unit_price?: number;
+}
+
+interface Transaction {
+    id: string;
+    item_id: string;
+    transaction_type: string;
+    quantity: number;
+    transaction_date: string;
+    item?: { id: string; name: string };
+}
+
+interface MedicalRecord {
+    id: string;
+    patient_id: string;
+    doctor_id: string;
+    diagnosis: string;
+    treatment_plan: string;
+    created_at: string;
+    updated_at: string;
+    patient?: { id: string; first_name: string; last_name: string };
+    doctor?: { id: string; first_name: string; last_name: string };
+}
+
+interface Prescription {
+    id: string;
+    patient_id: string;
+    doctor_id: string;
+    medication_name: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+    status: string;
+    created_at: string;
+    patient?: { id: string; first_name: string; last_name: string };
+    doctor?: { id: string; first_name: string; last_name: string };
+}
+
+interface LabResult {
+    id: string;
+    patient_id: string;
+    doctor_id: string;
+    test_name: string;
+    test_date: string;
+    status: string;
+    result_summary: string;
+    created_at: string;
+    patient?: { id: string; first_name: string; last_name: string };
+    doctor?: { id: string; first_name: string; last_name: string };
+}
+
 // Report Types
 export type ReportType =
     | "patient_demographics"
@@ -98,6 +201,11 @@ export async function getReportConfiguration(id: string) {
     await auditLogger.view("report_configurations", id)
 
     return report
+}
+
+// Alias for getReportConfiguration to fix the missing function error
+export async function getReportById(id: string) {
+    return getReportConfiguration(id);
 }
 
 // Create a new report configuration
@@ -275,7 +383,8 @@ export async function getReportResults(configId: string) {
         throw new Error(`Failed to fetch report results: ${error.message}`)
     }
 
-    await auditLogger.view("report_results", undefined, { configuration_id: configId })
+    // Fix: Pass empty string instead of undefined
+    await auditLogger.view("report_results", "", { configuration_id: configId })
 
     return results || []
 }
@@ -322,7 +431,7 @@ export async function generateReportData(reportType: ReportType, parameters: Rep
             throw new Error(`Unsupported report type: ${reportType}`)
     }
 
-    await auditLogger.create("report_generation", undefined, { type: reportType, parameters })
+    await auditLogger.create("report_generation", "", { type: reportType, parameters })
 
     return result
 }
@@ -370,7 +479,7 @@ async function generatePatientDemographicsReport(supabase: any, parameters: Repo
     const genderDistribution: Record<string, number> = {}
     const locationDistribution: Record<string, number> = {}
 
-    patients?.forEach((patient) => {
+    patients?.forEach((patient: Patient) => {
         // Calculate age
         const birthDate = new Date(patient.date_of_birth)
         const today = new Date()
@@ -448,7 +557,7 @@ async function generateAppointmentAnalyticsReport(supabase: any, parameters: Rep
     const appointmentsByDay: Record<string, number> = {}
     const appointmentsByMonth: Record<string, number> = {}
 
-    appointments?.forEach((appointment) => {
+    appointments?.forEach((appointment: Appointment) => {
         // Status distribution
         const status = appointment.status || "Unknown"
         statusDistribution[status] = (statusDistribution[status] || 0) + 1
@@ -527,7 +636,7 @@ async function generateBillingSummaryReport(supabase: any, parameters: ReportPar
     const monthlyRevenue: Record<string, number> = {}
     const topServices: Record<string, number> = {}
 
-    invoices?.forEach((invoice) => {
+    invoices?.forEach((invoice: Invoice) => {
         totalBilled += invoice.total_amount || 0
         totalPaid += invoice.paid_amount || 0
         totalOutstanding += invoice.total_amount - invoice.paid_amount || 0
@@ -542,15 +651,15 @@ async function generateBillingSummaryReport(supabase: any, parameters: ReportPar
         monthlyRevenue[month] = (monthlyRevenue[month] || 0) + invoice.total_amount
 
         // Top services
-        invoice.items?.forEach((item) => {
+        invoice.items?.forEach((item: InvoiceItem) => {
             topServices[item.description] = (topServices[item.description] || 0) + item.total_price
         })
     })
 
-    // Sort top services
+    // Sort top services - Fix: Add explicit type annotations to sort function parameters
     const sortedTopServices = Object.entries(topServices)
-        .sort(([, a], [, b]) => b - a)
-        .reduce((r, [k, v]) => ({ ...r, [k]: v }), {})
+        .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
+        .reduce((r: Record<string, number>, [k, v]: [string, number]) => ({ ...r, [k]: v }), {})
 
     return {
         totalBilled,
@@ -608,18 +717,18 @@ async function generateInventoryStatusReport(supabase: any, parameters: ReportPa
     }
 
     // Calculate statistics
-    const lowStockItems = items?.filter((item) => item.current_stock <= item.reorder_level) || []
-    const outOfStockItems = items?.filter((item) => item.current_stock <= 0) || []
+    const lowStockItems = items?.filter((item: InventoryItem) => item.current_stock <= item.reorder_level) || []
+    const outOfStockItems = items?.filter((item: InventoryItem) => item.current_stock <= 0) || []
     const categoryDistribution: Record<string, number> = {}
     const medicationVsSupplies = {
-        medications: items?.filter((item) => item.is_medication).length || 0,
-        supplies: items?.filter((item) => !item.is_medication).length || 0,
+        medications: items?.filter((item: InventoryItem) => item.is_medication).length || 0,
+        supplies: items?.filter((item: InventoryItem) => !item.is_medication).length || 0,
     }
 
     // Transaction trends by item
     const transactionTrends: Record<string, any[]> = {}
 
-    items?.forEach((item) => {
+    items?.forEach((item: InventoryItem) => {
         // Category distribution
         const categoryName = item.category?.name || "Unknown"
         categoryDistribution[categoryName] = (categoryDistribution[categoryName] || 0) + 1
@@ -629,7 +738,7 @@ async function generateInventoryStatusReport(supabase: any, parameters: ReportPa
     })
 
     // Process transactions for trends
-    transactions?.forEach((transaction) => {
+    transactions?.forEach((transaction: Transaction) => {
         if (transactionTrends[transaction.item_id]) {
             transactionTrends[transaction.item_id].push({
                 date: transaction.transaction_date,
@@ -732,8 +841,10 @@ async function generateStaffPerformanceReport(supabase: any, parameters: ReportP
 
         // Calculate performance metrics
         const totalAppointments = appointments?.length || 0
-        const completedAppointments = appointments?.filter((a) => a.status === "completed").length || 0
-        const cancelledAppointments = appointments?.filter((a) => a.status === "cancelled").length || 0
+        const completedAppointments = appointments?.filter((a: { status: string }) => a.status === "completed").length || 0
+        const cancelledAppointments = appointments?.filter((a: { status: string }) => a.status === "cancelled").length || 0
+
+
         const completionRate = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0
 
         doctorPerformance.push({
@@ -798,7 +909,7 @@ async function generateMedicalRecordsSummaryReport(supabase: any, parameters: Re
     const recordsByMonth: Record<string, number> = {}
     const diagnosisDistribution: Record<string, number> = {}
 
-    records?.forEach((record) => {
+    records?.forEach((record: MedicalRecord) => {
         // Records by doctor
         const doctorName = record.doctor ? `${record.doctor.first_name} ${record.doctor.last_name}` : "Unknown"
         recordsByDoctor[doctorName] = (recordsByDoctor[doctorName] || 0) + 1
@@ -864,7 +975,7 @@ async function generatePrescriptionAnalyticsReport(supabase: any, parameters: Re
     const prescriptionsByDoctor: Record<string, number> = {}
     const prescriptionsByMonth: Record<string, number> = {}
 
-    prescriptions?.forEach((prescription) => {
+    prescriptions?.forEach((prescription: Prescription) => {
         // Medication distribution
         const medication = prescription.medication_name || "Unknown"
         medicationDistribution[medication] = (medicationDistribution[medication] || 0) + 1
@@ -932,7 +1043,7 @@ async function generateLabResultsSummaryReport(supabase: any, parameters: Report
     const statusDistribution: Record<string, number> = {}
     const resultsByMonth: Record<string, number> = {}
 
-    labResults?.forEach((result) => {
+    labResults?.forEach((result: LabResult) => {
         // Test distribution
         const test = result.test_name || "Unknown"
         testDistribution[test] = (testDistribution[test] || 0) + 1

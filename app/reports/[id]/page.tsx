@@ -65,7 +65,7 @@ export default function ReportDetailPage({ params }: { params: { id: string } })
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
                 ) : (
-                    <ReportDetail report={report} />
+                    <ReportDetail report={report} id={params.id} />
                 )}
             </div>
         </RequireRole>

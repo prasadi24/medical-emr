@@ -48,7 +48,7 @@ export default function ReportsPage() {
                                 <CardDescription>View and manage your saved reports</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <ReportsList />
+                                <ReportsList reports={[]} />
                             </CardContent>
                         </Card>
                     </TabsContent>

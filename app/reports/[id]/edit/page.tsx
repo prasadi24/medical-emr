@@ -67,7 +67,7 @@ export default function EditReportPage({ params }: { params: { id: string } }) {
                             <CardDescription>Update your report settings and parameters</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <ReportForm saveReport={true} existingReport={report} />
+                            <ReportForm report={report} />
                         </CardContent>
                     </Card>
                 )}

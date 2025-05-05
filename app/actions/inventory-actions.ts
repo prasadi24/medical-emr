@@ -983,7 +983,9 @@ export async function getInventoryDashboardStats() {
             transaction_type: transaction.transaction_type,
             quantity: transaction.quantity,
             transaction_date: transaction.transaction_date,
-            item_name: transaction.item?.name || "Unknown Item",
+            item_name: Array.isArray(transaction.item) && transaction.item.length > 0
+                ? transaction.item[0]?.name || "Unknown Item"
+                : "Unknown Item",
         })
     }
 

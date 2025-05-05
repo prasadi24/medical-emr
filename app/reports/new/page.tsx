@@ -24,7 +24,7 @@ export default function NewReportPage() {
                         <CardDescription>Configure and save a new report for future reference</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ReportForm saveReport={true} />
+                        <ReportForm />
                     </CardContent>
                 </Card>
             </div>
